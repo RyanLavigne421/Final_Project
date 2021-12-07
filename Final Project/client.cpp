@@ -17,7 +17,13 @@ using namespace std;
 // Exit flag
 bool flag_exit = false;
 
-// protype functions
+// Initializing threads
+thread thread_send, thread_recv;
+
+// Initializing client socket
+int client_socket;
+
+// Protoypes functions
 void recv_message(int client_socket);
 void send_message(int client_socket);
 
@@ -28,7 +34,7 @@ int main() {
     // Fail if not socket doesn't connect
     if((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("Socket: ");
-        exit(-1);
+        exit(1);
     }
 
     const int port = 10000;
@@ -42,7 +48,7 @@ int main() {
     // Fail if can't connect
     if((connect(client_socket,(struct sockaddr *) &client, sizeof(struct sockaddr_in))) == -1) {
         perror("Connection: ");
-        exit(-1);
+        exit(1);
     }
 
     // user enters name & sends to client_socket     
@@ -52,32 +58,22 @@ int main() {
     send(client_socket, name, sizeof(name), 0);
 
     // Connected to chat room message
-    cout << " --------- Welcome to the Chat Room --------- " << end;
+    cout << " --------- Welcome to the Chat Room --------- " << endl;
 
     // Send & Receive threads
     thread sendThread(send_message, client_socket);
     thread recvThread(recv_message, client_socket);
 
-    // send thread
-    if(sendThread.joinable())
-        sendThread.join();  
-    
-    // recieve thread
-    if(recvThread.joinable())
-        recvThread.join();
-
-    // Another way of doing it is below
-
     //// Move threads
-    // tsend = move(sendThread);
-    // trecv = move(recvThread);
+    thread_send = move(sendThread);
+    thread_recv = move(recvThread);
 
     //// join threads
-    // if(tsend.joinable())
-    //     tsend.join();
+    if(thread_send.joinable())
+        thread_send.join();
 
-    // if(trecv.joinable())
-    //     trecv.join();
+    if(thread_recv.joinable())
+        thread_recv.join();
 
     return 0;
 }
@@ -106,16 +102,16 @@ void send_message(int client_socket)
 {
     while(1) 
     {
-        cout << "You: "
-        char str[MAX_LEN]
+        cout << "You: ";
+        char str[MAX_LEN];
         cin.getline(str, MAX_LEN);
         send(client_socket, str, sizeof(str), 0);
 
         // Exit phrase
-        if(stcrmp(str, "!exit") == 0) 
+        if(strcmp(str, "!exit") == 0) 
         { 
             flag_exit = true;
-            trecv.detach();
+            thread_recv.detach();
             close(client_socket);
             return;
         }
