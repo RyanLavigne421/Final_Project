@@ -6,11 +6,16 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <arpa/inet.h>
+
 
 
 using namespace std;
 
-int main(int arc, char const *argv[]) {
+string encodeData();
+string decodeData();
+
+int main(int argc, char const *argv[]) {
     
     // socket(int domain, type, protocol)
     // bind (fd, sockaddr, addr length)
@@ -20,7 +25,8 @@ int main(int arc, char const *argv[]) {
     // send(fd, buffer, size, flags)
     // recieve(fd, buffer, size, flags)
 
-    int sock_fd, new_sock, port;
+    int sock_fd, new_sock;
+    const int port = 10000;
     //sock length
     socklen_t client_len;
     char buffer[256];
@@ -34,10 +40,9 @@ int main(int arc, char const *argv[]) {
         exit(1);
     }
 
-    port = atoi(argv[1]);
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = 'localhost';
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     // converting port number into network byte
     server_addr.sin_port = htons(port);
 
