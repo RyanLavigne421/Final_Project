@@ -18,7 +18,7 @@ using namespace std;
 bool flag_exit = false;
 
 // Initializing threads
-// thread thread_send, thread_recv;
+thread thread_send, thread_recv;
 
 // Initializing client socket
 int client_socket;
@@ -60,20 +60,20 @@ int main() {
     // Connected to chat room message
     cout << " --------- Welcome to the Chat Room --------- " << endl;
 
-    // // Send & Receive threads
-    // thread sendThread(send_message(), client_socket);
-    // thread recvThread(recv_message(), client_socket);
+    // Send & Receive threads
+    thread sendThread(send_message(), client_socket);
+    thread recvThread(recv_message(), client_socket);
 
-    // //// Move threads
-    // thread_send = move(sendThread);
-    // thread_recv = move(recvThread);
+    //// Move threads
+    thread_send = move(sendThread);
+    thread_recv = move(recvThread);
 
-    // //// join threads
-    // if(thread_send.joinable())
-    //     thread_send.join();
+    //// join threads
+    if(thread_send.joinable())
+        thread_send.join();
 
-    // if(thread_recv.joinable())
-    //     thread_recv.join();
+    if(thread_recv.joinable())
+        thread_recv.join();
 
     return 0;
 }
