@@ -1,77 +1,187 @@
-#include <iostream>
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/socket.h>
+#include <bits/stdc++.h>
 #include <sys/types.h>
-#include <stdlib.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <errno.h>
 #include <string.h>
 #include <arpa/inet.h>
-
-
+#include <unistd.h>
+#include <thread>
+#define MAX_LEN 200
 
 using namespace std;
 
-string encodeData();
-string decodeData();
+struct console
+{
+	int id;
+	string name;
+	int socket;
+	thread th;
+};
 
-int main(int argc, char const *argv[]) {
-    
-    // socket(int domain, type, protocol)
-    // bind (fd, sockaddr, addr length)
-    // listen(fd, backlog queue size)
-    // accept(fd, addr, length)
-    // connect(fd, addr, length)
-    // send(fd, buffer, size, flags)
-    // recieve(fd, buffer, size, flags)
+vector<console> clients;
+int seed = 0;
+socklen_t client_len;
 
-    int sock_fd, new_sock;
-    const int port = 10000;
-    //sock length
-    socklen_t client_len;
-    char buffer[256];
-    struct sockaddr_in server_addr, client_addr;
-    int n;
+void set_name(int id, char name[]);
+void print_message(string str, bool endLine);
+int send_message(string message, int sender_id);
+int send_message(int num, int sender_id);
+void close_client(int id);
+void handle_client(int client_socket, int id);
 
-    // socket(int domain, type, protocol)
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock_fd < 0 ) {
-        perror("Error opening socket");
-        exit(1);
-    }
+int main()
+{
+	int server_socket;
+	if((server_socket = socket(AF_INET,SOCK_STREAM,0)) == -1) 
+	{
+		perror("socket: ");
+		exit(-1);
+	}
 
+	struct sockaddr_in server;
+	server.sin_family = AF_INET;
+	server.sin_port = htons(10000);
+	server.sin_addr.s_addr = INADDR_ANY;
+	bzero(&server.sin_zero, 0);
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    // converting port number into network byte
-    server_addr.sin_port = htons(port);
+	if((bind(server_socket, (struct sockaddr *) &server, sizeof(struct sockaddr_in))) == -1)
+	{
+		perror("bind error: ");
+		exit(1);
+	}
 
-    // bind (fd, sockaddr, addr length)
-    if(bind(sock_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-        perror("Error binding");
-        exit(1);
-    }
-        // listen(fd, backlog queue size)
-    listen(sock_fd, 5);
+	if((listen(server_socket, 8)) == -1)
+	{
+		perror("listen error: ");
+		exit(1);
+	}
 
-    client_len = sizeof(client_addr);
-    
-    new_sock = accept(sock_fd, (struct sockaddr *) &client_addr, &client_len);
+	struct sockaddr_in client;
+	int client_socket;
+	client_len = sizeof(sockaddr_in);
 
-    if(new_sock < 0) {
-        perror("Error on accept");
-        exit(1);
-    }
-    // need to insert connected message print out
-    bzero(buffer, 256);
+	cout<<"\n\t --------- Welcome to the Chat Room --------- "<<endl;
 
-    n = read(new_sock, buffer, 256);
-    if (n < 0) {
-        perror("Error reading from socket");
-    }
-    printf("Message: %s\n", buffer);
+	while(1)
+	{
+		if((client_socket = accept(server_socket, (struct sockaddr *) &client, &client_len)) == -1)
+		{
+			perror("accept error: ");
+			exit(1);
+		}
+		seed++;
+		thread t(handle_client, client_socket, seed);
+		clients.push_back({seed, string("Anonymous"), client_socket, (move(t))});
+	}
 
-    close(new_sock);
-    close(sock_fd);
-    return 0;
+	for(int i = 0; i < clients.size(); i++)
+	{
+		if(clients[i].th.joinable())
+			clients[i].th.join();
+	}
+
+	close(server_socket);
+	return 0;
+}
+
+// Set name of client
+void set_name(int id, char name[])
+{
+	for(int i = 0; i < clients.size(); i++)
+	{
+			if(clients[i].id == id)	
+			{
+				clients[i].name = string(name);
+			}
+	}	
+}
+
+// For synchronisation of cout statements
+void print_message(string str, bool endLine=true)
+{	
+	cout << str << endl;
+	// if(endLine)
+	// 	cout << endl;
+}
+
+// Broadcast message to all clients except the sender
+int send_message(string message, int sender_id)
+{
+	char temp[MAX_LEN];
+	strcpy(temp, message.c_str());
+	for(int i = 0; i < clients.size(); i++)
+	{
+		if(clients[i].id != sender_id)
+		{
+			send(clients[i].socket, temp, sizeof(temp), 0);
+            cout << "Message Broadcast Sent" <<  endl;
+		}
+	}		
+}
+
+// Broadcast a number to all clients except the sender
+int send_id(int num, int sender_id)
+{
+	for(int i = 0; i < clients.size(); i++)
+	{
+		if(clients[i].id != sender_id)
+		{
+			send(clients[i].socket, &num, sizeof(num), 0);
+            cout << "ID Broadcast Sent" <<  endl;
+		}
+	}		
+}
+
+void close_client(int id)
+{
+	for(int i=0; i < clients.size(); i++)
+	{
+		if(clients[i].id == id)	
+		{
+			clients[i].th.detach();
+			clients.erase(clients.begin()+i);
+			close(clients[i].socket);
+			break;
+		}
+	}				
+}
+
+void handle_client(int client_socket, int id)
+{
+	char name[MAX_LEN], str[MAX_LEN];
+    bool firstTime = true;
+	recv(client_socket, name, sizeof(name), 0);
+	set_name(id, name);	
+
+	// Display welcome message
+	string welcome_message = string(name) + string(" has joined");
+	send_message("!NULL", id);	
+	send_id(id, id);								
+	send_message(welcome_message, id);	
+	print_message(welcome_message);
+    firstTime = false;
+	
+	while(1)
+	{
+		int bytes_received = recv(client_socket, str, sizeof(str), 0);
+		if(bytes_received <= 0)
+			return;
+		if(strcmp(str, "!exit") == 0)
+		{
+			// Display leaving message
+			string leaving = string(name) + string(" has left");		
+			send_message("!NULL", id);			
+			send_id(id, id);						
+			send_message(leaving, id);
+			print_message(leaving);
+			close_client(id);							
+			return;
+		}
+		send_message(string(name), id);					
+		send_id(id, id);		
+		send_message(string(str), id);
+        if(firstTime != false)
+		    print_message(string(name) + "HANDLE : " + string(str));		
+	}	
 }
