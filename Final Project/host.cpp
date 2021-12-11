@@ -150,7 +150,7 @@ void close_client(int id)
 void handle_client(int client_socket, int id)
 {
 	char name[MAX_LEN], str[MAX_LEN];
-    bool firstTime = true;
+    int firstTime = 0;
 	recv(client_socket, name, sizeof(name), 0);
 	set_name(id, name);	
 
@@ -160,7 +160,6 @@ void handle_client(int client_socket, int id)
 	send_id(id, id);								
 	send_message(welcome_message, id);	
 	print_message(welcome_message);
-    firstTime = false;
 	
 	while(1)
 	{
@@ -181,7 +180,9 @@ void handle_client(int client_socket, int id)
 		send_message(string(name), id);					
 		send_id(id, id);		
 		send_message(string(str), id);
-        if(firstTime != false)
-		    print_message(string(name) + "HANDLE : " + string(str));		
+        if(firstTime != 0)
+		    print_message(string(name) + "HANDLE : " + string(str));	
+            
+        firstTime++;	
 	}	
 }
