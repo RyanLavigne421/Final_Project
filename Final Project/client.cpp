@@ -61,8 +61,8 @@ int main() {
     cout << " --------- Welcome to the Chat Room --------- " << endl;
 
     // Send & Receive threads
-    thread sendThread(send_message(), client_socket);
-    thread recvThread(recv_message(), client_socket);
+    thread sendThread(send_message, client_socket);
+    thread recvThread(recv_message, client_socket);
 
     //// Move threads
     thread_send = move(sendThread);
