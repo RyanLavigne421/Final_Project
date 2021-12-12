@@ -150,7 +150,9 @@ string encrypt_message(string message, int key) {
         temp = message[i];
         __asm {
             xor al, al // clearing al
+            mov eax, key
             mov al, temp
+            add al, eax
             ror al, 1
             xor al, 01011010
             ror al, 2 
@@ -172,8 +174,10 @@ string decrypt_message(string message, int key) {
     for(int i = 0; i < message.length(); i++) {
         temp = message[i];
         __asm {
+            mov eax, key
             xor al, al
             mov al, temp
+            sub al, eax
             xor al, 10101010
             not al
             rol al, 2
