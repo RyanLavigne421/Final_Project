@@ -10,7 +10,7 @@
 #include <thread>
 #include <signal.h>
 
-#define MAX_LEN 256
+#define MAX_LEN 200
 
 using namespace std;
 
@@ -26,6 +26,7 @@ int client_socket;
 // Protoypes functions
 void recv_message(int client_socket);
 void send_message(int client_socket);
+void eraseText(int count);
 
 int main() {
 
@@ -78,6 +79,14 @@ int main() {
     return 0;
 }
 
+//erases text from terminal
+void eraseText(int count) {
+    char back_space = 8;
+    for(int i =  0; i < count; i++) {
+        cout << back_space;
+    }
+}
+
 // Receives messages
 void recv_message(int client_socket) 
 {
@@ -92,6 +101,16 @@ void recv_message(int client_socket)
             continue;
 
         recv(client_socket, str, sizeof(str), 0);
+        eraseText(6);
+
+        // if(strcmp(name, "!NULL") != 0) {
+        //     cout << "CLIENT: " << name << "  : " << str << endl;
+        // } else {
+        //     cout << str << endl;
+        // }
+
+        cout << "CLIENT: " << name << "  : " << str << endl;
+
         cout << "You: ";
         fflush(stdout);
     }
