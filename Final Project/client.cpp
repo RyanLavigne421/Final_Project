@@ -103,13 +103,11 @@ void recv_message(int client_socket)
         recv(client_socket, str, sizeof(str), 0);
         eraseText(6);
 
-        // if(strcmp(name, "!NULL") != 0) {
-        //     cout << "CLIENT: " << name << "  : " << str << endl;
-        // } else {
-        //     cout << str << endl;
-        // }
-
-        cout << "CLIENT: " << name << "  : " << str << endl;
+        if(strcmp(name, "!NULL") != 0) {
+            cout << name << ": " << str << endl;
+        } else {
+            cout << str << endl;
+        }
 
         cout << "You: ";
         fflush(stdout);
