@@ -27,6 +27,9 @@ int client_socket;
 void recv_message(int client_socket);
 void send_message(int client_socket);
 void eraseText(int count);
+string encrypt_message(string message);
+string decrypt_message(string message);
+int generateKey();
 
 int main() {
 
@@ -136,4 +139,54 @@ void send_message(int client_socket)
         // if want to we can also add an @ reference for private messaging
         // also another idea is if they send a !color then they can change their color of their name in the chat
     }
+}
+
+string encrypt_message(string message, int key) {
+    char temp;
+    char data;
+    string retVal = "";
+
+    for(int i = 0; i < message.length(); i++) {
+        temp = message[i];
+        __asm {
+            xor al, al // clearing al
+            mov al, temp
+            ror al, 1
+            xor al, 01011010
+            ror al, 2 
+            not al
+            xor al, 10101010
+            mov data, al
+        };
+        retVal += data;
+    }
+    cout << "Encrypted: " << retVal << endl;
+    return retVal;
+}
+
+string decrypt_message(string message, int key) {
+    char temp;
+    char data;
+    string retVal = "";
+
+    for(int i = 0; i < message.length(); i++) {
+        temp = message[i];
+        __asm {
+            xor al, al
+            mov al, temp
+            xor al, 10101010
+            not al
+            rol al, 2
+            xor al, 01011010
+            rol al, 1
+            mov data, al
+        };
+        retVal += data;
+    }
+    return retVal;
+}
+
+int generateKey() {
+    int key = rand() + 10;
+    return key;
 }
