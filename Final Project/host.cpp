@@ -36,17 +36,18 @@ void handle_client(int client_socket, int id);
 int main()
 {
 	int server_socket;
-	if((server_socket = socket(AF_INET,SOCK_STREAM,0)) == -1) 
-	{
-		perror("socket: ");
-		exit(-1);
-	}
 
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_port = htons(10000);
 	server.sin_addr.s_addr = INADDR_ANY;
 	bzero(&server.sin_zero, 0);
+
+    if((server_socket = socket(AF_INET,SOCK_STREAM,0)) == -1) 
+	{
+		perror("socket: ");
+		exit(1);
+	}
 
 	if((bind(server_socket, (struct sockaddr *) &server, sizeof(struct sockaddr_in))) == -1)
 	{
@@ -176,3 +177,7 @@ void handle_client(int client_socket, int id)
         firstTime++;	
 	}	
 }
+
+
+
+         

@@ -27,19 +27,12 @@ int client_socket;
 void recv_message(int client_socket);
 void send_message(int client_socket);
 void eraseText(int count);
-string encrypt_message(string message);
-string decrypt_message(string message);
-int generateKey();
+string encrypt_message(string message, char key);
+string decrypt_message(string message, char key);
 
 int main() {
 
     struct sockaddr_in client;
-
-    // Fail if not socket doesn't connect
-    if((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        perror("Socket: ");
-        exit(1);
-    }
 
     const int port = 10000;
 
@@ -48,6 +41,12 @@ int main() {
     client.sin_port = htons(port);
     client.sin_addr.s_addr = inet_addr("127.0.0.1");
     bzero(&client.sin_zero, 0);
+
+    // Fail if not socket doesn't connect
+    if((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("Socket: ");
+        exit(1);
+    }
 
     // Fail if can't connect
     if((connect(client_socket,(struct sockaddr *) &client, sizeof(struct sockaddr_in))) == -1) {
@@ -68,11 +67,11 @@ int main() {
     thread sendThread(send_message, client_socket);
     thread recvThread(recv_message, client_socket);
 
-    //// Move threads
+    // Move threads
     thread_send = move(sendThread);
     thread_recv = move(recvThread);
 
-    //// join threads
+    // join threads
     if(thread_send.joinable())
         thread_send.join();
 
@@ -141,56 +140,62 @@ void send_message(int client_socket)
     }
 }
 
-string encrypt_message(string message, int key) {
+string encrypt_message(string message, char key)
+{
     char temp;
     char data;
     string retVal = "";
 
-    for(int i = 0; i < message.length(); i++) {
+    cout << message << endl;
+
+    for (int i = 0; i < message.length(); i++)
+    {
         temp = message[i];
-        __asm {
-            xor al, al // clearing al
-            mov eax, key
-            mov al, temp
-            add al, eax
-            ror al, 1
-            xor al, 01011010
-            ror al, 2 
-            not al
-            xor al, 10101010
-            mov data, al
-        };
+        // edit the key itself
+        asm("movb %[key], %%bl \n "
+            "movb %[input], %%al \n "
+            "xor $11001100, %%bl \n"
+            "ror $3, %%bl \n"
+            "addb %%bl, %%al \n "
+            "ror $2, %%al \n"
+            "xor $01011010, %%al \n"
+            "ror $2, %%al \n "
+            "not %%al \n "
+            "xor $10101010, %%al \n "
+            "movb %%al, %[output] \n "
+            : [output] "+m"(data)               // output operands
+            : [input] "m"(temp), [key] "m"(key) // input operands
+            : "%bl", "%al");                    // clobbers
         retVal += data;
     }
     cout << "Encrypted: " << retVal << endl;
     return retVal;
 }
 
-string decrypt_message(string message, int key) {
+string decrypt_message(string message, char key)
+{
     char temp;
     char data;
     string retVal = "";
 
-    for(int i = 0; i < message.length(); i++) {
+    for (int i = 0; i < message.length(); i++)
+    {
         temp = message[i];
-        __asm {
-            mov eax, key
-            xor al, al
-            mov al, temp
-            sub al, eax
-            xor al, 10101010
-            not al
-            rol al, 2
-            xor al, 01011010
-            rol al, 1
-            mov data, al
-        };
+        asm("movb %[key], %%bl \n "
+            "movb %[input], %%al \n "
+            "xor $11001100, %%bl \n"
+            "ror $3, %%bl \n"
+            "xor $10101010, %%al \n "
+            "not %%al \n"
+            "rol $2, %%al \n "
+            "xor $01011010, %%al \n"
+            "rol $2, %%al \n "
+            "subb %%bl, %%al \n"
+            "movb %%al, %[output]\n"
+            : [output] "+m"(data)               // output operands
+            : [input] "m"(temp), [key] "m"(key) // input operands
+            : "%bl", "%al");                    // clobbers
         retVal += data;
     }
     return retVal;
-}
-
-int generateKey() {
-    int key = rand() + 10;
-    return key;
 }
