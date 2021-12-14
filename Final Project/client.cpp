@@ -1,5 +1,15 @@
+/*
+
+NOTES:
+This program was compiled using GCC version 11.2.0 and was found there
+might be possbile complications with using a newer version of GCC
+
+This project does successfully compile and work using GCC version 11.2.0
+have not tested it on other versions.
+
+*/
+
 #include <iostream>
-// #include <bits/stdc++.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -27,8 +37,8 @@ int client_socket;
 void recv_message(int client_socket);
 void send_message(int client_socket);
 void eraseText(int count);
-string encrypt_message(string message, char key);
-string decrypt_message(string message, char key);
+string encrypt_message(string message);
+string decrypt_message(string message);
 
 int main() {
 
@@ -103,12 +113,14 @@ void recv_message(int client_socket)
             continue;
 
         recv(client_socket, str, sizeof(str), 0);
+        string decrypted = decrypt_message(str);
         eraseText(6);
 
+
         if(strcmp(name, "!NULL") != 0) {
-            cout << name << ": " << str << endl;
+            cout << name << ": " << decrypted << endl;
         } else {
-            cout << str << endl;
+            cout << decrypted << endl;
         }
 
         cout << "You: ";
@@ -122,31 +134,32 @@ void send_message(int client_socket)
     while(1) 
     {
         cout << "You: ";
-        char str[MAX_LEN];
-        cin.getline(str, MAX_LEN);
-        send(client_socket, str, sizeof(str), 0);
+        char char_message[MAX_LEN];
+        char temp[MAX_LEN];
+        string encrypted_msg;
+        string input;
+        getline(cin, input);
+        encrypted_msg = encrypt_message(input);
+        strcpy(char_message, encrypted_msg.c_str());
+        send(client_socket, char_message, sizeof(char_message), 0);
 
         // Exit phrase
-        if(strcmp(str, "!exit") == 0) 
+        if(strcmp(char_message, "!EXIT") == 0) 
         { 
             flag_exit = true;
             thread_recv.detach();
             close(client_socket);
             return;
         }
-
-        // if want to we can also add an @ reference for private messaging
-        // also another idea is if they send a !color then they can change their color of their name in the chat
     }
 }
 
-string encrypt_message(string message, char key)
+string encrypt_message(string message)
 {
+    char key = '7';
     char temp;
     char data;
     string retVal = "";
-
-    cout << message << endl;
 
     for (int i = 0; i < message.length(); i++)
     {
@@ -168,12 +181,12 @@ string encrypt_message(string message, char key)
             : "%bl", "%al");                    // clobbers
         retVal += data;
     }
-    cout << "Encrypted: " << retVal << endl;
     return retVal;
 }
 
-string decrypt_message(string message, char key)
+string decrypt_message(string message)
 {
+    char key = '7';
     char temp;
     char data;
     string retVal = "";
@@ -183,8 +196,8 @@ string decrypt_message(string message, char key)
         temp = message[i];
         asm("movb %[key], %%bl \n "
             "movb %[input], %%al \n "
-            "xor $11001100, %%bl \n"
-            "ror $3, %%bl \n"
+            "xor $11001100, %%bl \n" // XOR KEY
+            "ror $3, %%bl \n" // ROTATE KEY
             "xor $10101010, %%al \n "
             "not %%al \n"
             "rol $2, %%al \n "

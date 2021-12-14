@@ -1,3 +1,14 @@
+/*
+
+NOTES:
+This program was compiled using GCC version 11.2.0 and was found there
+might be possbile complications with using a newer version of GCC
+
+This project does successfully compile and work using GCC version 11.2.0
+have not tested it on other versions.
+
+*/
+
 #include <bits/stdc++.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -32,6 +43,8 @@ void print_message(string str, bool endLine);
 void send_message(string message, int sender_id);
 void close_client(int id);
 void handle_client(int client_socket, int id);
+string encrypt_message(string message);
+
 
 int main()
 {
@@ -117,6 +130,7 @@ void send_message(string message, int sender_id)
 {
 	char temp[MAX_LEN];
 	strcpy(temp, message.c_str());
+
 	for(int i = 0; i < clients.size(); i++)
 	{
 		if(clients[i].id != sender_id)
@@ -146,12 +160,14 @@ void handle_client(int client_socket, int id)
 	char name[MAX_LEN], str[MAX_LEN];
     
 	recv(client_socket, name, sizeof(name), 0);
-	set_name(id, name);	
+	set_name(id, name);
+
 
 	// Display welcome message
 	string welcome_message = string(name) + string(" has joined");
-	send_message("!NULL", id);								
-	send_message(welcome_message, id);	
+	send_message("!NULL", id);		
+	string encrypt_msg = encrypt_message(welcome_message);			
+	send_message(encrypt_msg, id);	
 	print_message(welcome_message);
 	
 	while(1)
@@ -160,11 +176,12 @@ void handle_client(int client_socket, int id)
 		if(bytes_received <= 0)
 			return;
 
-		if(strcmp(str, "!exit") == 0)
+		if(strcmp(str, "!EXIT") == 0)
 		{
 			// Display leaving message
-			string leaving = string(name) + string(" has left");						
-			send_message(leaving, id);
+			string leaving = string(name) + string(" has left");
+			string encrypt_leave = encrypt_message(leaving);						
+			send_message(encrypt_leave, id);
 			print_message(leaving);
 			close_client(id);							
 			return;
@@ -176,6 +193,38 @@ void handle_client(int client_socket, int id)
             
         firstTime++;	
 	}	
+}
+
+string encrypt_message(string message)
+{
+    char key = '7';
+    char temp;
+    char data;
+    string retVal = "";
+
+    //cout << message << endl;
+
+    for (int i = 0; i < message.length(); i++)
+    {
+        temp = message[i];
+        // edit the key itself
+        asm("movb %[key], %%bl \n "
+            "movb %[input], %%al \n "
+            "xor $11001100, %%bl \n"
+            "ror $3, %%bl \n"
+            "addb %%bl, %%al \n "
+            "ror $2, %%al \n"
+            "xor $01011010, %%al \n"
+            "ror $2, %%al \n "
+            "not %%al \n "
+            "xor $10101010, %%al \n "
+            "movb %%al, %[output] \n "
+            : [output] "+m"(data)               // output operands
+            : [input] "m"(temp), [key] "m"(key) // input operands
+            : "%bl", "%al");                    // clobbers
+        retVal += data;
+    }
+    return retVal;
 }
 
 
